@@ -1,0 +1,53 @@
+WITH 
+downloads AS (
+  SELECT 'downloaded' AS funnel, COUNT(app_download_key) AS users
+  FROM app_downloads
+), 
+     
+signups AS (
+  SELECT 'signed up', COUNT(user_id) AS users
+  FROM signups
+),
+
+ride_requesters AS (
+  SELECT 'ride requested', COUNT(DISTINCT user_id) AS users
+  FROM ride_requests
+),
+
+completed_ride AS (
+  SELECT 'ride completed', COUNT(DISTINCT user_id) AS users
+  FROM ride_requests AS rr
+  INNER JOIN transactions AS ts
+  ON rr.ride_id = ts.ride_id
+  WHERE rr.accept_ts IS NOT NULL
+),
+
+reviewed_ride AS (
+  SELECT 'reviewed', COUNT(DISTINCT user_id) AS users
+  FROM reviews
+), 
+
+funnel AS (
+SELECT *
+FROM downloads
+UNION ALL
+SELECT *
+FROM signups 
+UNION ALL
+SELECT *
+FROM ride_requesters 
+UNION ALL
+SELECT *
+FROM completed_ride 
+UNION ALL
+SELECT *
+FROM reviewed_ride 
+ORDER BY users DESC
+)
+        
+SELECT 
+funnel, 
+users, 
+-COALESCE((LAG(users, 1) OVER(ORDER BY users DESC)-users),0) AS drop,
+-COALESCE(ROUND(((LAG(users, 1) OVER(ORDER BY users DESC)-users)::numeric/LAG(users, 1) OVER(ORDER BY users DESC)::numeric)*100, 2),0) AS drop_pct
+FROM funnel
