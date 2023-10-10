@@ -13,6 +13,10 @@ ride_requesters AS (
   SELECT 'ride requested', COUNT(DISTINCT user_id) AS users
   FROM ride_requests
 ),
+ride_accepted AS (
+SELECT 'ride accepted', COUNT(DISTINCT user_id)
+FROM ride_requests
+WHERE accept_ts IS NOT NULL),
 
 completed_ride AS (
   SELECT 'ride completed', COUNT(DISTINCT user_id) AS users
@@ -21,13 +25,18 @@ completed_ride AS (
   ON rr.ride_id = ts.ride_id
   WHERE rr.accept_ts IS NOT NULL
 ),
+successful_payment AS (
+  SELECT 'ride paid', COUNT(DISTINCT user_id) AS users
+  FROM ride_requests AS rr
+  INNER JOIN transactions AS ts
+  ON rr.ride_id = ts.ride_id
+  WHERE ts.charge_status = 'Approved'
 
+),
 reviewed_ride AS (
   SELECT 'reviewed', COUNT(DISTINCT user_id) AS users
   FROM reviews
-), 
-
-funnel AS (
+), funnel AS (
 SELECT *
 FROM downloads
 UNION ALL
@@ -38,7 +47,13 @@ SELECT *
 FROM ride_requesters 
 UNION ALL
 SELECT *
+FROM ride_accepted
+UNION ALL
+SELECT *
 FROM completed_ride 
+UNION ALL
+SELECT *
+FROM successful_payment
 UNION ALL
 SELECT *
 FROM reviewed_ride 
@@ -50,4 +65,5 @@ funnel,
 users, 
 -COALESCE((LAG(users, 1) OVER(ORDER BY users DESC)-users),0) AS drop,
 -COALESCE(ROUND(((LAG(users, 1) OVER(ORDER BY users DESC)-users)::numeric/LAG(users, 1) OVER(ORDER BY users DESC)::numeric)*100, 2),0) AS drop_pct
+
 FROM funnel
