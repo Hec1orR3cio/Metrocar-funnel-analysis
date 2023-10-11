@@ -1,0 +1,36 @@
+WITH totals AS (
+SELECT 
+  ROUND(SUM(ts.purchase_amount_usd)) AS total_revenue, 
+  COUNT(ts.ride_id) AS total_rides
+FROM transactions AS ts
+INNER JOIN ride_requests AS rr 
+ON ts.ride_id = rr.ride_id
+INNER JOIN signups AS su
+ON rr.user_id = su.user_id
+INNER JOIN app_downloads AS ad
+ON su.session_id = ad.app_download_key
+),
+totals_by_platform AS (
+SELECT 
+  UPPER(ad.platform) AS platform,
+  ROUND(SUM(ts.purchase_amount_usd)) AS revenue, 
+  COUNT(ts.ride_id) AS rides
+  
+FROM transactions AS ts
+INNER JOIN ride_requests AS rr 
+ON ts.ride_id = rr.ride_id
+INNER JOIN signups AS su
+ON rr.user_id = su.user_id
+INNER JOIN app_downloads AS ad
+ON su.session_id = ad.app_download_key
+GROUP BY ad.platform
+ORDER BY revenue DESC
+)
+
+SELECT 
+platform,
+totals_by_platform.revenue,
+(totals_by_platform.revenue/totals.total_revenue) AS pct_of_total_rev,
+totals_by_platform.rides,
+(totals_by_platform.rides::numeric/totals.total_rides::numeric) AS pct_of_total_rides
+FROM totals_by_platform, totals
