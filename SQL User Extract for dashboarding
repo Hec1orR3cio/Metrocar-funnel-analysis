@@ -13,7 +13,7 @@ downloads AS (
  
  signups AS (
  SELECT 
-    'signed up', 
+    'signed up' AS funnel, 
     COUNT(user_id) AS users,
     ad.platform,
     COALESCE(su.age_range, 'Not specified') AS age_group,
@@ -24,29 +24,30 @@ downloads AS (
  GROUP BY ad.platform, su.age_range, download_date),
 
 ride_requested AS (
- SELECT 
-    'ride requested', 
-    COUNT(DISTINCT rr.user_id) AS users,
-    ad.platform,
-    COALESCE(su.age_range, 'Not specified') AS age_group,
-    CAST(download_ts AS DATE) AS download_date
- FROM ride_requests AS rr
- INNER JOIN signups AS su
- ON rr.user_id = su.user_id
- INNER JOIN app_downloads AS ad
- ON su.session_id = ad.app_download_key
- GROUP BY ad.platform, su.age_range, download_date
-),
-ride_accepted AS (
-  SELECT 
-     'ride accepted', 
+SELECT 
+     'ride requested' AS funnel, 
      COUNT(DISTINCT rr.user_id) AS users,
      ad.platform,
      COALESCE(su.age_range, 'Not specified') AS age_group,
      CAST(download_ts AS DATE) AS download_date
   FROM ride_requests AS rr
   INNER JOIN signups AS su
-  ON rr.user_id = su.user_id
+  ON su.user_id = rr.user_id
+  INNER JOIN app_downloads AS ad
+  ON su.session_id = ad.app_download_key
+  GROUP BY ad.platform, su.age_range, download_date
+),
+
+ride_accepted AS (
+  SELECT 
+     'ride accepted' AS funnel, 
+     COUNT(DISTINCT rr.user_id) AS users,
+     ad.platform,
+     COALESCE(su.age_range, 'Not specified') AS age_group,
+     CAST(download_ts AS DATE) AS download_date
+  FROM ride_requests AS rr
+  INNER JOIN signups AS su
+  ON su.user_id = rr.user_id
   INNER JOIN app_downloads AS ad
   ON su.session_id = ad.app_download_key
   WHERE accept_ts IS NOT NULL
@@ -54,7 +55,7 @@ ride_accepted AS (
 ),
 ride_completed AS (
   SELECT 
-    'ride completed', 
+    'ride completed' AS funnel, 
     COUNT(DISTINCT rr.user_id) AS users,
     ad.platform,
     COALESCE(su.age_range, 'Not specified') AS age_group,
@@ -69,9 +70,10 @@ ride_completed AS (
   WHERE accept_ts IS NOT NULL
   GROUP BY ad.platform, su.age_range, download_date
 ),
+
 ride_paid AS (
   SELECT 
-     'ride paid', 
+     'ride paid' AS funnel, 
      COUNT(DISTINCT rr.user_id) AS users,
      ad.platform,
      COALESCE(su.age_range, 'Not specified') AS age_group,
@@ -88,7 +90,7 @@ ride_paid AS (
 
 ride_reviewed AS (
   SELECT 
-     'ride paid', 
+     'ride reviewed' AS funnel, 
      COUNT(DISTINCT rv.user_id) AS users,
      ad.platform,
      COALESCE(su.age_range, 'Not specified') AS age_group,
