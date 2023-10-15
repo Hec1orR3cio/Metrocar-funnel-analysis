@@ -2,6 +2,9 @@
 
 ## The dataset:
 
+### Access importing URL
+postgres://Test:bQNxVzJL4g6u@ep-noisy-flower-846766-pooler.us-east-2.aws.neon.tech/Metrocar
+
 ### app_downloads: contains information about app downloads
 - app_download_key: unique id of an app download
 - platform: ios, android or web
