@@ -1,0 +1,111 @@
+WITH
+rides_requested AS (
+SELECT
+  'ride requested' AS funnel,
+  COUNT(DISTINCT rr.ride_id) AS rides,
+  ad.platform,
+  COALESCE(su.age_range, 'Not specified') AS age_group,
+  CAST(rr.request_ts AS TIME) AS request_date,
+  0 AS revenue
+FROM
+  ride_requests AS rr
+  INNER JOIN signups AS su ON rr.user_id = su.user_id
+  INNER JOIN app_downloads AS ad ON su.session_id = ad.app_download_key
+GROUP BY
+  ad.platform,
+  su.age_range,
+  request_date
+),
+
+rides_accepted AS (
+SELECT
+  'ride accepted' AS funnel,
+  COUNT(DISTINCT rr.ride_id) AS rides,
+  ad.platform,
+  COALESCE(su.age_range, 'Not specified') AS age_group,
+  CAST(rr.request_ts AS TIME) AS request_date,
+  0 AS revenue
+FROM
+  ride_requests AS rr
+  INNER JOIN signups AS su ON rr.user_id = su.user_id
+  INNER JOIN app_downloads AS ad ON su.session_id = ad.app_download_key
+WHERE rr.accept_ts IS NOT NULL
+GROUP BY
+  ad.platform,
+  su.age_range,
+  request_date
+),
+
+rides_completed AS (
+SELECT
+  'ride completed' AS funnel,
+  COUNT(DISTINCT rr.ride_id) AS rides,
+  ad.platform,
+  COALESCE(su.age_range, 'Not specified') AS age_group,
+  CAST(rr.request_ts AS TIME) AS request_date,
+  0 AS revenue
+FROM
+  ride_requests AS rr
+  INNER JOIN signups AS su ON rr.user_id = su.user_id
+  INNER JOIN app_downloads AS ad ON su.session_id = ad.app_download_key
+WHERE rr.accept_ts IS NOT NULL AND rr.dropoff_ts IS NOT NULL
+GROUP BY
+  ad.platform,
+  su.age_range,
+  request_date
+),
+
+rides_paid AS (
+SELECT
+  'ride paid' AS funnel,
+  COUNT(DISTINCT rr.ride_id) AS rides,
+  ad.platform,
+  COALESCE(su.age_range, 'Not specified') AS age_group,
+  CAST(rr.request_ts AS TIME) AS request_date,
+  SUM(ts.purchase_amount_usd) AS revenue
+FROM
+  ride_requests AS rr
+  INNER JOIN signups AS su ON rr.user_id = su.user_id
+  INNER JOIN app_downloads AS ad ON su.session_id = ad.app_download_key
+  INNER JOIN transactions AS ts ON rr.ride_id = ts.ride_id
+WHERE rr.accept_ts IS NOT NULL AND rr.dropoff_ts IS NOT NULL AND ts.charge_status = 'Approved'
+GROUP BY
+  ad.platform,
+  su.age_range,
+  request_date
+),
+
+rides_reviewed AS (
+SELECT
+  'ride reviewed' AS funnel,
+  COUNT(DISTINCT rr.ride_id) AS rides,
+  ad.platform,
+  COALESCE(su.age_range, 'Not specified') AS age_group,
+  CAST(rr.request_ts AS TIME) AS request_date,
+  SUM(ts.purchase_amount_usd) AS revenue
+FROM
+  ride_requests AS rr
+  INNER JOIN signups AS su ON rr.user_id = su.user_id
+  INNER JOIN app_downloads AS ad ON su.session_id = ad.app_download_key
+  INNER JOIN transactions AS ts ON rr.ride_id = ts.ride_id
+  INNER JOIN reviews AS rv ON ts.ride_id = rv.ride_id
+WHERE rr.accept_ts IS NOT NULL AND rr.dropoff_ts IS NOT NULL AND ts.charge_status = 'Approved'
+GROUP BY
+  ad.platform,
+  su.age_range,
+  request_date)
+
+SELECT *
+FROM rides_requested
+UNION ALL
+SELECT *
+FROM rides_accepted 
+UNION ALL
+SELECT *
+FROM rides_completed
+UNION ALL
+SELECT *
+FROM rides_paid 
+UNION ALL
+SELECT *
+FROM rides_reviewed
