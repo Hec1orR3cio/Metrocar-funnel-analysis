@@ -5,7 +5,7 @@ downloads AS (
 ), 
      
 signups AS (
-  SELECT 'signed up', COUNT(user_id) AS users
+  SELECT 'signed up', COUNT(DISTINCT user_id) AS users
   FROM signups
 ),
 
