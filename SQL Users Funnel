@@ -21,9 +21,7 @@ WHERE accept_ts IS NOT NULL),
 completed_ride AS (
   SELECT 'ride completed', COUNT(DISTINCT user_id) AS users
   FROM ride_requests AS rr
-  INNER JOIN transactions AS ts
-  ON rr.ride_id = ts.ride_id
-  WHERE rr.accept_ts IS NOT NULL
+  WHERE rr.accept_ts IS NOT NULL AND rr.dropoff_ts IS NOT NULL
 ),
 successful_payment AS (
   SELECT 'ride paid', COUNT(DISTINCT user_id) AS users
